@@ -1,10 +1,25 @@
 
+import { db } from '../db';
+import { palmReadingsTable } from '../db/schema';
 import { type GetUserReadingsInput, type PalmReading } from '../schema';
+import { eq, desc } from 'drizzle-orm';
 
 export const getUserPalmReadings = async (input: GetUserReadingsInput): Promise<PalmReading[]> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all palm readings for a specific user.
-    // Should return readings ordered by creation date (newest first).
-    // Language parameter can be used for filtering or formatting response.
-    return Promise.resolve([]);
+  try {
+    // Query palm readings for the specified user, ordered by creation date (newest first)
+    const results = await db.select()
+      .from(palmReadingsTable)
+      .where(eq(palmReadingsTable.user_id, input.user_id))
+      .orderBy(desc(palmReadingsTable.created_at))
+      .execute();
+
+    // Convert numeric fields back to numbers before returning
+    return results.map(reading => ({
+      ...reading,
+      confidence_score: parseFloat(reading.confidence_score)
+    }));
+  } catch (error) {
+    console.error('Failed to fetch user palm readings:', error);
+    throw error;
+  }
 };

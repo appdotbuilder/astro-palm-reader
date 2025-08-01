@@ -1,16 +1,44 @@
 
-import { type GetTranslationsInput, type Translation } from '../schema';
+import { db } from '../db';
+import { translationsTable } from '../db/schema';
+import { type GetTranslationsInput } from '../schema';
+import { inArray } from 'drizzle-orm';
 
 export const getTranslations = async (input: GetTranslationsInput): Promise<Record<string, string>> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching UI translations for the specified language.
-    // If keys array is provided, return only those translations.
-    // Otherwise, return all available translations for the language.
-    // Should return a key-value mapping for easy frontend consumption.
-    return Promise.resolve({
-        'welcome_message': 'Welcome to the Astrology App',
-        'upload_palm': 'Upload Palm Photo',
-        'birth_details': 'Enter Birth Details',
-        'your_reading': 'Your Reading'
+  try {
+    // Execute query with or without key filter
+    const results = input.keys && input.keys.length > 0
+      ? await db.select()
+          .from(translationsTable)
+          .where(inArray(translationsTable.key, input.keys))
+          .execute()
+      : await db.select()
+          .from(translationsTable)
+          .execute();
+
+    // Build key-value mapping based on requested language
+    const translations: Record<string, string> = {};
+    
+    results.forEach(translation => {
+      let text: string;
+      switch (input.language) {
+        case 'bengali':
+          text = translation.text_bengali;
+          break;
+        case 'hindi':
+          text = translation.text_hindi;
+          break;
+        case 'english':
+        default:
+          text = translation.text_english;
+          break;
+      }
+      translations[translation.key] = text;
     });
+
+    return translations;
+  } catch (error) {
+    console.error('Get translations failed:', error);
+    throw error;
+  }
 };
